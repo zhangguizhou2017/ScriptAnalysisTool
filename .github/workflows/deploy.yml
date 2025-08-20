@@ -1,0 +1,55 @@
+name: 简化自动部署
+
+# 触发条件：当推送到 main 分支时
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # 直接进行 SSH 部署，跳过所有可能卡住的步骤
+    - name: SSH 部署到服务器
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        port: ${{ secrets.SERVER_PORT }}
+        timeout: 30s
+        command_timeout: 5m
+        script: |
+          echo "🚀 开始部署..."
+          
+          # 进入项目目录
+          cd /www/wwwroot/todo-app
+          
+          # 显示当前状态
+          echo "📍 当前目录: $(pwd)"
+          echo "📋 当前分支: $(git branch --show-current)"
+          
+          # 拉取最新代码
+          echo "📥 拉取最新代码..."
+          git pull origin main
+          
+          # 安装/更新依赖
+          echo "📦 安装主应用依赖..."
+          npm ci --production
+          
+          # 安装 MCP 服务器依赖
+          echo "📦 安装 MCP 服务器依赖..."
+          cd todo-mcp-server
+          npm ci --production
+          cd ..
+          
+          # 重启 PM2 进程
+          echo "🔄 重启应用..."
+          pm2 restart todo-app || pm2 start server.js --name todo-app
+          
+          # 显示最终状态
+          echo "✅ 部署完成！"
+          pm2 status
+          echo "📋 最近日志:"
+          pm2 logs todo-app --lines 5
