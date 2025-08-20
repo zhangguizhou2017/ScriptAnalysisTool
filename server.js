@@ -8,6 +8,7 @@ require('dotenv').config();
 
 const db = require('./config/database');
 const todoRoutes = require('./routes/todos');
+const scriptRoutes = require('./routes/scripts');
 const { optionalAuth } = require('./middleware/auth');
 const { rateLimiter, inputSanitizer, errorHandler, securityHeaders } = require('./middleware/security');
 
@@ -50,6 +51,7 @@ app.use(bodyParser({
 }));
 
 router.use('/api/todos', todoRoutes.routes());
+router.use('/api/scripts', scriptRoutes.routes());
 
 app.use(router.routes());
 app.use(router.allowedMethods());

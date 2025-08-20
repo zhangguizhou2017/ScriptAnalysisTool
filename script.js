@@ -1,181 +1,212 @@
-class TodoApp {
+class ScriptParserApp {
     constructor() {
-        this.todos = [];
-        this.currentFilter = 'all';
-        this.apiUrl = '/api/todos';
+        this.projects = [];
+        this.currentProject = null;
+        this.apiUrl = '/api/scripts';
         this.init();
     }
 
     async init() {
         this.bindEvents();
-        await this.loadTodos();
-        this.render();
-        this.updateStats();
+        await this.loadProjects();
+        this.renderProjects();
     }
 
     bindEvents() {
-        const todoInput = document.getElementById('todoInput');
-        const addBtn = document.getElementById('addBtn');
-        const filterBtns = document.querySelectorAll('.filter-btn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const backBtn = document.getElementById('backBtn');
 
-        addBtn.addEventListener('click', () => this.addTodo());
-        todoInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.addTodo();
-        });
-
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.setFilter(e.target.dataset.filter);
-            });
-        });
+        refreshBtn.addEventListener('click', () => this.refreshProjects());
+        backBtn.addEventListener('click', () => this.showProjectsList());
     }
 
-    async addTodo() {
-        const input = document.getElementById('todoInput');
-        const text = input.value.trim();
-        
-        if (!text) {
-            this.showNotification('请输入待办事项内容', 'error');
-            return;
-        }
+    async refreshProjects() {
+        await this.loadProjects();
+        this.renderProjects();
+        this.showNotification('项目列表已刷新', 'success');
+    }
 
-        if (text.length > 255) {
-            this.showNotification('待办事项内容不能超过255个字符', 'error');
-            return;
-        }
-
+    async loadProjects() {
         try {
-            const response = await fetch(this.apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ text })
-            });
-
+            const response = await fetch(this.apiUrl);
             const result = await response.json();
 
             if (result.success) {
-                input.value = '';
-                await this.loadTodos();
-                this.render();
-                this.updateStats();
-                this.showNotification(result.message, 'success');
+                this.projects = result.data;
             } else {
-                this.showNotification(result.message, 'error');
+                this.showNotification('加载项目失败', 'error');
+                this.projects = [];
             }
         } catch (error) {
-            console.error('添加待办事项失败:', error);
-            this.showNotification('添加失败，请检查网络连接', 'error');
+            console.error('加载项目失败:', error);
+            this.showNotification('加载失败，请检查网络连接', 'error');
+            this.projects = [];
         }
     }
 
-    async toggleTodo(id) {
-        const todo = this.todos.find(t => t.id === id);
-        if (!todo) return;
-
-        try {
-            const response = await fetch(`${this.apiUrl}/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ completed: !todo.completed })
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                await this.loadTodos();
-                this.render();
-                this.updateStats();
-            } else {
-                this.showNotification(result.message, 'error');
-            }
-        } catch (error) {
-            console.error('更新待办事项失败:', error);
-            this.showNotification('更新失败，请检查网络连接', 'error');
-        }
-    }
-
-    async deleteTodo(id) {
-        if (!confirm('确定要删除这个待办事项吗？')) return;
-
-        try {
-            const response = await fetch(`${this.apiUrl}/${id}`, {
-                method: 'DELETE'
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                await this.loadTodos();
-                this.render();
-                this.updateStats();
-                this.showNotification(result.message, 'info');
-            } else {
-                this.showNotification(result.message, 'error');
-            }
-        } catch (error) {
-            console.error('删除待办事项失败:', error);
-            this.showNotification('删除失败，请检查网络连接', 'error');
-        }
-    }
-
-    setFilter(filter) {
-        this.currentFilter = filter;
+    renderProjects() {
+        const projectsList = document.getElementById('projectsList');
         
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
-        
-        this.render();
-    }
-
-    getFilteredTodos() {
-        switch (this.currentFilter) {
-            case 'pending':
-                return this.todos.filter(todo => !todo.completed);
-            case 'completed':
-                return this.todos.filter(todo => todo.completed);
-            default:
-                return this.todos;
-        }
-    }
-
-    render() {
-        const todoList = document.getElementById('todoList');
-        const filteredTodos = this.getFilteredTodos();
-        
-        if (filteredTodos.length === 0) {
-            todoList.innerHTML = '<li class="empty-state">📋 暂无待办事项</li>';
+        if (this.projects.length === 0) {
+            projectsList.innerHTML = `
+                <div class="empty-state">
+                    <h3>📝 暂无剧本项目</h3>
+                </div>
+            `;
             return;
         }
 
-        todoList.innerHTML = filteredTodos.map(todo => `
-            <li class="todo-item ${todo.completed ? 'completed' : ''}">
-                <input type="checkbox" 
-                       class="todo-checkbox" 
-                       ${todo.completed ? 'checked' : ''}
-                       onchange="todoApp.toggleTodo(${todo.id})">
-                <span class="todo-text">${this.escapeHtml(todo.text)}</span>
-                <button class="delete-btn" onclick="todoApp.deleteTodo(${todo.id})">
-                    删除
-                </button>
-            </li>
+        projectsList.innerHTML = this.projects.map(project => `
+            <div class="project-card" onclick="scriptApp.showProjectDetail(${project.id})">
+                <div class="project-header">
+                    <h3>🎭 ${this.escapeHtml(project.name)}</h3>
+                    <span class="project-id">#${project.id}</span>
+                </div>
+                <div class="project-meta">
+                    <p class="project-description">${this.escapeHtml(project.description || '无描述')}</p>
+                    <div class="project-stats">
+                        <span class="stat">📊 ${project.data_count || 0} 条数据</span>
+                        <span class="stat">🏷️ ${project.tag_types ? project.tag_types.length : 0} 个标签</span>
+                    </div>
+                    <div class="project-tags">
+                        ${project.tag_types ? project.tag_types.map(tag => 
+                            `<span class="tag">${this.escapeHtml(tag)}</span>`
+                        ).join('') : '<span class="no-tags">暂无标签</span>'}
+                    </div>
+                    <div class="project-date">
+                        创建于: ${new Date(project.created_at).toLocaleString()}
+                    </div>
+                </div>
+            </div>
         `).join('');
     }
 
-    updateStats() {
-        const total = this.todos.length;
-        const completed = this.todos.filter(t => t.completed).length;
-        const pending = total - completed;
+    async showProjectDetail(projectId) {
+        try {
+            const response = await fetch(`${this.apiUrl}/${projectId}`);
+            const result = await response.json();
 
-        document.getElementById('totalCount').textContent = `总计: ${total}`;
-        document.getElementById('completedCount').textContent = `已完成: ${completed}`;
-        document.getElementById('pendingCount').textContent = `待完成: ${pending}`;
+            if (result.success) {
+                this.currentProject = result.data;
+                this.renderProjectDetail();
+                
+                document.querySelector('.projects-section').style.display = 'none';
+                document.getElementById('projectDetail').style.display = 'block';
+            } else {
+                this.showNotification('加载项目详情失败', 'error');
+            }
+        } catch (error) {
+            console.error('加载项目详情失败:', error);
+            this.showNotification('加载失败，请检查网络连接', 'error');
+        }
+    }
+
+    renderProjectDetail() {
+        if (!this.currentProject) return;
+
+        const project = this.currentProject;
+        document.getElementById('projectTitle').textContent = `🎭 ${project.name}`;
+        
+        const projectInfo = document.getElementById('projectInfo');
+        projectInfo.innerHTML = `
+            <div class="project-info-card">
+                <h3>📋 项目信息</h3>
+                <div class="info-item">
+                    <strong>项目ID:</strong> ${project.id}
+                </div>
+                <div class="info-item">
+                    <strong>项目名称:</strong> ${this.escapeHtml(project.name)}
+                </div>
+                <div class="info-item">
+                    <strong>项目描述:</strong> ${this.escapeHtml(project.description || '无')}
+                </div>
+                <div class="info-item">
+                    <strong>创建时间:</strong> ${new Date(project.created_at).toLocaleString()}
+                </div>
+                <div class="info-item">
+                    <strong>更新时间:</strong> ${new Date(project.updated_at).toLocaleString()}
+                </div>
+            </div>
+        `;
+
+        const projectData = document.getElementById('projectData');
+        if (!project.data_by_tag || project.data_by_tag.length === 0) {
+            projectData.innerHTML = `
+                <div class="empty-data">
+                    <h3>📊 暂无解析数据</h3>
+                    <p>请使用MCP工具解析剧本内容</p>
+                    <p>可用的MCP工具：<code>parse_script_content</code></p>
+                </div>
+            `;
+            return;
+        }
+
+        projectData.innerHTML = `
+            <div class="data-section">
+                <h3>📊 解析数据分类</h3>
+                <div class="tabs-container">
+                    <div class="tabs-header">
+                        ${project.data_by_tag.map((tagData, index) => `
+                            <button class="tab-btn ${index === 0 ? 'active' : ''}" 
+                                    onclick="scriptApp.switchTab(${index})" 
+                                    data-tab="${index}">
+                                🏷️ ${this.escapeHtml(tagData.type)} 
+                                <span class="tab-count">(${tagData.items.length})</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div class="tabs-content">
+                        ${project.data_by_tag.map((tagData, index) => `
+                            <div class="tab-pane ${index === 0 ? 'active' : ''}" data-tab-content="${index}">
+                                <div class="tab-header">
+                                    <h4>🏷️ ${this.escapeHtml(tagData.type)}</h4>
+                                    <p class="tag-description">${this.escapeHtml(tagData.description || '')}</p>
+                                </div>
+                                <div class="tag-items">
+                                    ${tagData.items.map((item, itemIndex) => `
+                                        <div class="data-item">
+                                            <div class="item-header">
+                                                <span class="item-number">#${itemIndex + 1}</span>
+                                                <span class="item-date">${new Date(item.created_at).toLocaleString()}</span>
+                                            </div>
+                                            ${item.summary ? `
+                                                <div class="item-summary">
+                                                    <strong>总结:</strong> ${this.escapeHtml(item.summary)}
+                                                </div>
+                                            ` : ''}
+                                            <div class="item-content">
+                                                <strong>内容:</strong> ${this.escapeHtml(item.content)}
+                                            </div>
+                                            ${item.metadata && Object.keys(item.metadata).length > 0 ? `
+                                                <div class="item-metadata">
+                                                    <strong>元数据:</strong> ${this.escapeHtml(JSON.stringify(item.metadata))}
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    switchTab(tabIndex) {
+        // 移除所有活跃状态
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+        
+        // 激活选中的tab
+        document.querySelector(`[data-tab="${tabIndex}"]`).classList.add('active');
+        document.querySelector(`[data-tab-content="${tabIndex}"]`).classList.add('active');
+    }
+
+    showProjectsList() {
+        document.getElementById('projectDetail').style.display = 'none';
+        document.querySelector('.projects-section').style.display = 'block';
+        this.currentProject = null;
     }
 
     showNotification(message, type = 'info') {
@@ -223,35 +254,22 @@ class TodoApp {
         setTimeout(() => {
             notification.style.animation = 'slideInRight 0.3s ease reverse';
             setTimeout(() => {
-                document.body.removeChild(notification);
-                document.head.removeChild(style);
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+                if (document.head.contains(style)) {
+                    document.head.removeChild(style);
+                }
             }, 300);
         }, 3000);
     }
 
     escapeHtml(text) {
+        if (typeof text !== 'string') return text;
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-
-    async loadTodos() {
-        try {
-            const response = await fetch(this.apiUrl);
-            const result = await response.json();
-
-            if (result.success) {
-                this.todos = result.data;
-            } else {
-                this.showNotification('加载待办事项失败', 'error');
-                this.todos = [];
-            }
-        } catch (error) {
-            console.error('加载待办事项失败:', error);
-            this.showNotification('加载失败，请检查网络连接', 'error');
-            this.todos = [];
-        }
-    }
 }
 
-const todoApp = new TodoApp();
+const scriptApp = new ScriptParserApp();

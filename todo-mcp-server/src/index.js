@@ -11,14 +11,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const TODO_API_BASE = process.env.TODO_API_URL || 'http://your-domain.com';
-const API_KEY = process.env.TODO_API_KEY || '';
+const SCRIPT_API_BASE = process.env.SCRIPT_API_URL || 'http://your-domain.com';
+const API_KEY = process.env.SCRIPT_API_KEY || '';
 
-class TodoMCPServer {
+class ScriptParserMCPServer {
   constructor() {
     this.server = new Server(
       {
-        name: 'todo-mcp-server',
+        name: 'script-parser-mcp-server',
         version: '1.0.0',
       },
       {
@@ -36,7 +36,7 @@ class TodoMCPServer {
     try {
       const config = {
         method,
-        url: `${TODO_API_BASE}/api/todos${endpoint}`,
+        url: `${SCRIPT_API_BASE}/api/scripts${endpoint}`,
         headers: {
           'Content-Type': 'application/json',
           ...(API_KEY && { 'X-API-Key': API_KEY }),
@@ -55,7 +55,7 @@ class TodoMCPServer {
       return response.data;
     } catch (error) {
       console.error(`[ERROR] API request failed:`);
-      console.error(`[ERROR] URL: ${TODO_API_BASE}/api/todos${endpoint}`);
+      console.error(`[ERROR] URL: ${SCRIPT_API_BASE}/api/scripts${endpoint}`);
       console.error(`[ERROR] Method: ${method}`);
       console.error(`[ERROR] Data:`, JSON.stringify(data));
       console.error(`[ERROR] Status: ${error.response?.status}`);
@@ -70,115 +70,123 @@ class TodoMCPServer {
       return {
         tools: [
           {
-            name: 'list_todos',
-            description: '获取所有待办事项列表',
+            name: 'create_script_project',
+            description: '创建新的剧本解析项目',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  description: '项目名称',
+                },
+                description: {
+                  type: 'string',
+                  description: '项目描述（可选）',
+                },
+              },
+              required: ['name'],
+            },
+          },
+          {
+            name: 'list_script_projects',
+            description: '获取所有剧本项目列表',
             inputSchema: {
               type: 'object',
               properties: {},
             },
           },
           {
-            name: 'create_todo',
-            description: '创建新的待办事项',
+            name: 'get_script_project',
+            description: '获取指定剧本项目的详细信息',
             inputSchema: {
               type: 'object',
               properties: {
-                text: {
+                project_id: {
+                  type: 'number',
+                  description: '项目ID',
+                },
+              },
+              required: ['project_id'],
+            },
+          },
+          {
+            name: 'parse_script_content',
+            description: '解析剧本内容并按标签分类存储。这是核心功能，用于从剧本中提取人物、场景等信息',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                project_id: {
+                  type: 'number',
+                  description: '项目ID',
+                },
+                tag_type: {
                   type: 'string',
-                  description: '待办事项的内容',
+                  description: '标签类型（如：人物、场景、道具、情节、对话、动作）',
                 },
-              },
-              required: ['text'],
-            },
-          },
-          {
-            name: 'update_todo',
-            description: '更新现有的待办事项',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                id: {
-                  type: 'number',
-                  description: '待办事项的ID',
-                },
-                text: {
-                  type: 'string',
-                  description: '新的待办事项内容',
-                },
-                completed: {
-                  type: 'boolean',
-                  description: '是否已完成',
-                },
-              },
-              required: ['id'],
-            },
-          },
-          {
-            name: 'delete_todo',
-            description: '删除待办事项',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                id: {
-                  type: 'number',
-                  description: '要删除的待办事项ID',
-                },
-              },
-              required: ['id'],
-            },
-          },
-          {
-            name: 'toggle_todo',
-            description: '切换待办事项的完成状态',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                id: {
-                  type: 'number',
-                  description: '要切换状态的待办事项ID',
-                },
-              },
-              required: ['id'],
-            },
-          },
-          {
-            name: 'create_todos_batch',
-            description: '批量创建多个待办事项',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                todos: {
+                items: {
                   type: 'array',
                   items: {
                     type: 'object',
                     properties: {
-                      text: {
+                      content: {
                         type: 'string',
-                        description: '待办事项内容',
+                        description: '解析出的原始内容',
+                      },
+                      summary: {
+                        type: 'string',
+                        description: '内容总结（可选）',
+                      },
+                      metadata: {
+                        type: 'object',
+                        description: '额外的元数据信息（可选）',
                       },
                     },
-                    required: ['text'],
+                    required: ['content'],
                   },
-                  description: '待办事项列表',
+                  description: '解析出的项目列表',
                 },
               },
-              required: ['todos'],
+              required: ['project_id', 'tag_type', 'items'],
             },
           },
           {
-            name: 'get_todos_stats',
-            description: '获取待办事项统计信息',
+            name: 'get_script_data_by_tag',
+            description: '根据标签类型获取剧本解析数据',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                project_id: {
+                  type: 'number',
+                  description: '项目ID',
+                },
+                tag_type: {
+                  type: 'string',
+                  description: '标签类型（如：人物、场景、道具等）',
+                },
+              },
+              required: ['project_id', 'tag_type'],
+            },
+          },
+          {
+            name: 'list_tag_types',
+            description: '获取所有可用的标签类型',
             inputSchema: {
               type: 'object',
               properties: {},
             },
           },
           {
-            name: 'clear_completed_todos',
-            description: '清除所有已完成的待办事项',
+            name: 'delete_script_project',
+            description: '删除剧本项目',
             inputSchema: {
               type: 'object',
-              properties: {},
+              properties: {
+                project_id: {
+                  type: 'number',
+                  description: '要删除的项目ID',
+                },
+              },
+              required: ['project_id'],
             },
           },
         ],
@@ -190,16 +198,138 @@ class TodoMCPServer {
 
       try {
         switch (name) {
-          case 'list_todos': {
-            const result = await this.makeApiRequest('GET', '');
+          case 'create_script_project': {
+            const result = await this.makeApiRequest('POST', '', {
+              name: args.name,
+              description: args.description,
+            });
             return {
               content: [
                 {
                   type: 'text',
-                  text: `找到 ${result.data.length} 个待办事项:\\n\\n${result.data
+                  text: `✅ 成功创建剧本项目: "${result.data.name}" (ID: ${result.data.id})`,
+                },
+              ],
+            };
+          }
+
+          case 'list_script_projects': {
+            const result = await this.makeApiRequest('GET', '');
+            if (result.data.length === 0) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: '📝 暂无剧本项目',
+                  },
+                ],
+              };
+            }
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `📚 找到 ${result.data.length} 个剧本项目:\\n\\n${result.data
                     .map(
-                      (todo) =>
-                        `${todo.completed ? '✅' : '❌'} [ID: ${todo.id}] ${todo.text}`
+                      (project) =>
+                        `🎭 [ID: ${project.id}] ${project.name}\\n   描述: ${project.description || '无'}\\n   数据量: ${project.data_count} 条\\n   标签类型: ${project.tag_types.join(', ') || '无'}`
+                    )
+                    .join('\\n\\n')}`,
+                },
+              ],
+            };
+          }
+
+          case 'get_script_project': {
+            const result = await this.makeApiRequest('GET', `/${args.project_id}`);
+            const project = result.data;
+            let text = `🎭 项目: ${project.name}\\n📝 描述: ${project.description || '无'}\\n📅 创建时间: ${project.created_at}\\n\\n`;
+            
+            if (project.data_by_tag.length === 0) {
+              text += '📊 该项目暂无解析数据';
+            } else {
+              text += '📊 解析数据分类:\\n\\n';
+              project.data_by_tag.forEach(tagData => {
+                text += `🏷️ ${tagData.type} (${tagData.items.length} 条):\\n`;
+                tagData.items.slice(0, 3).forEach((item, index) => {
+                  text += `   ${index + 1}. ${item.summary || item.content.substring(0, 50)}${item.content.length > 50 ? '...' : ''}\\n`;
+                });
+                if (tagData.items.length > 3) {
+                  text += `   ... 还有 ${tagData.items.length - 3} 条\\n`;
+                }
+                text += '\\n';
+              });
+            }
+            
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: text,
+                },
+              ],
+            };
+          }
+
+          case 'parse_script_content': {
+            const result = await this.makeApiRequest('POST', `/${args.project_id}/parse`, {
+              tag_type: args.tag_type,
+              items: args.items,
+            });
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `✅ 成功解析并存储剧本内容:\\n🏷️ 标签类型: ${args.tag_type}\\n📊 解析项目: ${args.items.length} 条\\n💾 已存储到项目 ID: ${args.project_id}`,
+                },
+              ],
+            };
+          }
+
+          case 'get_script_data_by_tag': {
+            const result = await this.makeApiRequest('GET', `/${args.project_id}/tag/${args.tag_type}`);
+            const data = result.data;
+            
+            if (data.items.length === 0) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `📝 项目 ${data.project_id} 中暂无 "${data.tag_type}" 类型的数据`,
+                  },
+                ],
+              };
+            }
+            
+            let text = `🏷️ ${data.tag_type} 数据 (共 ${data.items.length} 条):\\n\\n`;
+            data.items.forEach((item, index) => {
+              text += `${index + 1}. ${item.summary || item.content}\\n`;
+              if (item.summary && item.content !== item.summary) {
+                text += `   原文: ${item.content.substring(0, 100)}${item.content.length > 100 ? '...' : ''}\\n`;
+              }
+              text += `   创建时间: ${item.created_at}\\n\\n`;
+            });
+            
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: text,
+                },
+              ],
+            };
+          }
+
+          case 'list_tag_types': {
+            const result = await this.makeApiRequest('GET', '/tag-types/list');
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `🏷️ 可用的标签类型:\\n\\n${result.data
+                    .map(
+                      (tagType) =>
+                        `📌 ${tagType.name}: ${tagType.description || '无描述'} (使用 ${tagType.usage_count} 次)`
                     )
                     .join('\\n')}`,
                 },
@@ -207,100 +337,13 @@ class TodoMCPServer {
             };
           }
 
-          case 'create_todo': {
-            const result = await this.makeApiRequest('POST', '', {
-              text: args.text,
-            });
+          case 'delete_script_project': {
+            await this.makeApiRequest('DELETE', `/${args.project_id}`);
             return {
               content: [
                 {
                   type: 'text',
-                  text: `✅ 成功创建待办事项: "${result.data.text}" (ID: ${result.data.id})`,
-                },
-              ],
-            };
-          }
-
-          case 'update_todo': {
-            const updateData = {};
-            if (args.text !== undefined) updateData.text = args.text;
-            if (args.completed !== undefined) updateData.completed = args.completed;
-
-            const result = await this.makeApiRequest('PUT', `/${args.id}`, updateData);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `✅ 成功更新待办事项: "${result.data.text}" (${
-                    result.data.completed ? '已完成' : '未完成'
-                  })`,
-                },
-              ],
-            };
-          }
-
-          case 'delete_todo': {
-            await this.makeApiRequest('DELETE', `/${args.id}`);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `✅ 成功删除待办事项 (ID: ${args.id})`,
-                },
-              ],
-            };
-          }
-
-          case 'toggle_todo': {
-            const result = await this.makeApiRequest('PATCH', `/${args.id}/toggle`);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `✅ 成功切换状态: "${result.data.text}" 现在${
-                    result.data.completed ? '已完成' : '未完成'
-                  }`,
-                },
-              ],
-            };
-          }
-
-          case 'create_todos_batch': {
-            const result = await this.makeApiRequest('POST', '/batch', {
-              todos: args.todos,
-            });
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `✅ 成功批量创建 ${result.data.length} 个待办事项:\\n${result.data
-                    .map((todo) => `- ${todo.text} (ID: ${todo.id})`)
-                    .join('\\n')}`,
-                },
-              ],
-            };
-          }
-
-          case 'get_todos_stats': {
-            const result = await this.makeApiRequest('GET', '/stats');
-            const { total, completed, pending, completionRate } = result.data;
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `📊 待办事项统计:\\n- 总计: ${total} 个\\n- 已完成: ${completed} 个\\n- 待完成: ${pending} 个\\n- 完成率: ${completionRate}%`,
-                },
-              ],
-            };
-          }
-
-          case 'clear_completed_todos': {
-            const result = await this.makeApiRequest('DELETE', '/completed');
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `✅ 成功清除 ${result.data.deletedCount} 个已完成的待办事项`,
+                  text: `✅ 成功删除剧本项目 (ID: ${args.project_id})`,
                 },
               ],
             };
@@ -337,9 +380,9 @@ class TodoMCPServer {
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('Todo MCP Server 已启动');
+    console.error('Script Parser MCP Server 已启动');
   }
 }
 
-const server = new TodoMCPServer();
+const server = new ScriptParserMCPServer();
 server.run().catch(console.error);

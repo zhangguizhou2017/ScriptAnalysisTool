@@ -29,18 +29,56 @@ async function initDatabase() {
         
         const dbConnection = await pool.getConnection();
         
-        const createTableQuery = `
-            CREATE TABLE IF NOT EXISTS todos (
+        const createScriptProjectsTable = `
+            CREATE TABLE IF NOT EXISTS script_projects (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                text VARCHAR(255) NOT NULL,
-                completed BOOLEAN DEFAULT FALSE,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )
         `;
         
-        await dbConnection.execute(createTableQuery);
-        console.log('✅ 数据表创建成功');
+        const createTagTypesTable = `
+            CREATE TABLE IF NOT EXISTS tag_types (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+        
+        const createScriptDataTable = `
+            CREATE TABLE IF NOT EXISTS script_data (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                project_id INT NOT NULL,
+                tag_type_id INT NOT NULL,
+                content TEXT NOT NULL,
+                summary TEXT,
+                metadata JSON,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (project_id) REFERENCES script_projects(id) ON DELETE CASCADE,
+                FOREIGN KEY (tag_type_id) REFERENCES tag_types(id) ON DELETE CASCADE
+            )
+        `;
+        
+        await dbConnection.execute(createScriptProjectsTable);
+        await dbConnection.execute(createTagTypesTable);
+        await dbConnection.execute(createScriptDataTable);
+        
+        const insertDefaultTagTypes = `
+            INSERT IGNORE INTO tag_types (name, description) VALUES 
+            ('人物', '剧本中的角色和人物'),
+            ('场景', '剧本中的场景和地点'),
+            ('道具', '剧本中的道具和物品'),
+            ('情节', '剧本中的重要情节点'),
+            ('对话', '剧本中的重要对话片段'),
+            ('动作', '剧本中的动作描述')
+        `;
+        
+        await dbConnection.execute(insertDefaultTagTypes);
+        console.log('✅ 剧本解析数据表创建成功');
         
         dbConnection.release();
         
