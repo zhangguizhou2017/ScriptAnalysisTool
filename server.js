@@ -7,7 +7,6 @@ const path = require('path');
 require('dotenv').config();
 
 const db = require('./config/database');
-const todoRoutes = require('./routes/todos');
 const scriptRoutes = require('./routes/scripts');
 const { optionalAuth } = require('./middleware/auth');
 const { rateLimiter, inputSanitizer, errorHandler, securityHeaders } = require('./middleware/security');
@@ -50,7 +49,6 @@ app.use(bodyParser({
     textLimit: '10mb'
 }));
 
-router.use('/api/todos', todoRoutes.routes());
 router.use('/api/scripts', scriptRoutes.routes());
 
 app.use(router.routes());
@@ -61,6 +59,6 @@ app.use(serve(path.join(__dirname)));
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
-    console.log(`🚀 服务器运行在 http://localhost:${PORT}`);
-    console.log(`📝 前端页面: http://localhost:${PORT}/index.html`);
+    console.log(`🎭 剧本解析工具服务器运行在 http://localhost:${PORT}`);
+    console.log(`📖 前端页面: http://localhost:${PORT}/index.html`);
 });

@@ -1,18 +1,18 @@
 {
-  "name": "ccclaude",
+  "name": "script-analysis-tool",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "build": "echo \"No build needed for this project\"",
-    "package": "zip -r todo-app.zip . -x 'node_modules/*' '.git/*' '*.log'",
+    "package": "zip -r script-analysis-tool.zip . -x 'node_modules/*' '.git/*' '*.log'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["todo", "koa2", "mysql"],
+  "keywords": ["script", "analysis", "parser", "mcp", "koa2", "mysql"],
   "author": "",
   "license": "ISC",
-  "description": "Simple Todo App with Koa2 and MySQL",
+  "description": "剧本解析工具 - 基于Koa2和MySQL的剧本内容分类管理系统，支持MCP集成",
   "dependencies": {
     "koa": "^2.14.2",
     "koa-router": "^12.0.0",

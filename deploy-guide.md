@@ -138,7 +138,24 @@ pm2 restart todo-app  # 重启应用
 ```
 
 ## 🎉 完成！
-现在你的 TODO 应用已经成功部署到线上了！
+现在你的剧本解析工具已经成功部署到线上了！
 
-## todo
- proxy_set_header X-Forwarded-Proto $scheme; // nginx
+## 📝 双项目部署注意事项
+
+如果服务器上已经有TodoList项目运行在3000端口，ScriptAnalysisTool将运行在3001端口：
+
+**访问地址：**
+- TodoList: `http://你的IP:3000` 或 `http://你的域名/`
+- ScriptAnalysisTool: `http://你的IP:3001` 或 `http://你的域名/script/`
+
+**数据库配置：**
+- TodoList使用 `todoapp` 数据库
+- ScriptAnalysisTool使用 `scriptanalysisdb` 数据库
+
+**PM2进程查看：**
+```bash
+pm2 status
+# 应该看到两个进程：
+# - todolist (3000端口)
+# - script-analysis-tool (3001端口)
+```

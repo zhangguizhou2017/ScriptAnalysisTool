@@ -1,7 +1,7 @@
 {
-  "name": "todo-mcp-server",
+  "name": "script-mcp-server",
   "version": "1.0.0",
-  "description": "MCP Server for Todo App Integration",
+  "description": "MCP Server for Script Analysis Tool Integration",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "build": "echo \"No build needed for this project\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["mcp", "todo", "claude", "server"],
+  "keywords": ["mcp", "script", "analysis", "claude", "server"],
   "author": "",
   "license": "MIT",
   "dependencies": {
